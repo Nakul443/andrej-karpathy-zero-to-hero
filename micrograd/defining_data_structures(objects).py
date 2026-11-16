@@ -21,9 +21,11 @@ every number must carry metadata along with its raw value
 
 
 class Value:
-    def __init__(self, data):
+    # we added the children parameter cuz we want to keep track of the Value objects that were used to create this Value object,
+    # so that we can backpropagate through the computational graph later on.
+    def __init__(self, data, _children=()):
         self.data = data
-
+        self._prev = set(_children) # this is a set of the Value objects that were used to create this Value object
 
     # If you omit __repr__,
     # Python falls back to its default representation showing only the class name and its memory address:
@@ -35,19 +37,21 @@ class Value:
         return f"Value(data={self.data})"
 
     def __add__(self, other):
-        return Value(self.data + other.data)
+        # adding children to the _children set so that we can backpropagate through the computational graph later on
+        return Value(self.data + other.data, _children=(self, other))
 
     def __mul__(self, other):
-        return Value(self.data * other.data)
-    
+        # adding children to the _children set so that we can backpropagate through the computational graph later on
+        return Value(self.data * other.data, _children=(self, other))
 
 a = Value(2.0)
 b = Value(-3.0)
 c = Value(10.0)
-print(a+b) # this will raise an error because we haven't defined how to add two Value objects together yet
-# internally python will call, a.__add__(b), which will return a new Value object with the data attribute set to the sum of the data attributes of a and b, which is -1.0
+d = a*b + c
+# print(a+b) # this will raise an error because we haven't defined how to add two Value objects together yet
+# # internally python will call, a.__add__(b), which will return a new Value object with the data attribute set to the sum of the data attributes of a and b, which is -1.0
 
+# print((a*b)+c)
+# # internally python will call, (a.__mul__(b)).__add__(c)
 
-
-print((a*b)+c)
-# internally python will call, (a.__mul__(b)).__add__(c)
+print(d._prev) # this will print the set of Value objects that were used to create d, which is {a, b, c}
