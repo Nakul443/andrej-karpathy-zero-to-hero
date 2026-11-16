@@ -21,11 +21,15 @@ every number must carry metadata along with its raw value
 
 
 class Value:
-    # we added the children parameter cuz we want to keep track of the Value objects that were used to create this Value object,
-    # so that we can backpropagate through the computational graph later on.
-    def __init__(self, data, _children=()):
+    # 1. we added the children parameter cuz we want to keep track of the Value objects that were used to create this Value object,
+        # so that we can backpropagate through the computational graph later on.
+
+    # 2. we added the op parameter cuz we want to keep track of the operation that was used to create this Value object,
+        # so that we can backpropagate through the computational graph later on.
+    def __init__(self, data, _children=(), _op=''):
         self.data = data
         self._prev = set(_children) # this is a set of the Value objects that were used to create this Value object
+        self._op = _op # this is the operation that was used to create this Value object
 
     # If you omit __repr__,
     # Python falls back to its default representation showing only the class name and its memory address:
@@ -38,11 +42,11 @@ class Value:
 
     def __add__(self, other):
         # adding children to the _children set so that we can backpropagate through the computational graph later on
-        return Value(self.data + other.data, _children=(self, other))
+        return Value(self.data + other.data, _children=(self, other), _op='+')
 
     def __mul__(self, other):
         # adding children to the _children set so that we can backpropagate through the computational graph later on
-        return Value(self.data * other.data, _children=(self, other))
+        return Value(self.data * other.data, _children=(self, other), _op='*')
 
 a = Value(2.0)
 b = Value(-3.0)
@@ -55,3 +59,4 @@ d = a*b + c
 # # internally python will call, (a.__mul__(b)).__add__(c)
 
 print(d._prev) # this will print the set of Value objects that were used to create d, which is {a, b, c}
+print(d._op) # this will print the operation that was used to create d, which is +
