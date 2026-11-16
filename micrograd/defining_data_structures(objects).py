@@ -60,3 +60,17 @@ d = a*b + c
 
 print(d._prev) # this will print the set of Value objects that were used to create d, which is {a, b, c}
 print(d._op) # this will print the operation that was used to create d, which is +
+'''
+d  (+)
+├── temp (*)      <- d._prev contains this
+│   ├── a
+│   └── b         <- temp._prev contains these
+└── c
+
+Quick way to see it
+
+print(d._prev)         # {Value(data=-6.0), Value(data=10.0)}
+print(d._op)           # +
+for child in d._prev:
+    print(child, child._op, child._prev)
+'''
