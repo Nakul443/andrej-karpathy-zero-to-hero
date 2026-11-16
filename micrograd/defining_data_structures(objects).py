@@ -1,3 +1,25 @@
+'''
+We created class 'value' cuz:
+    Once c is calculated, Python retains no memory of:
+
+    Who created c (that c was produced by a and b).
+    What operation created it (multiplication *).
+    What its derivative / gradient is with respect to the output.
+
+
+so we needed a class to store the data, the gradient, and the function that produced it.
+
+
+To build an Autograd engine (automatic differentiation) like PyTorch or Micrograd,
+every number must carry metadata along with its raw value
+1. Tracking the graph of operations that produced it (the computational graph).
+2. Storing the gradient of the final output with respect to itself (the derivative).
+    a. storing the gradient in simple terms means that we can compute the gradient
+    of the final output with respect to any input variable by backpropagating through the computational graph.
+
+'''
+
+
 class Value:
     def __init__(self, data):
         self.data = data
