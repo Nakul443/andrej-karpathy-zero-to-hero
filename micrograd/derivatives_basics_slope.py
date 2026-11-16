@@ -52,6 +52,7 @@ d = a*b + c
 
 # now we'll calculate the derivative of d with respect to a, b, and c using the same method as before
 
+
 # 1. the influence of a on d if we change a by a small amount h, while keeping b and c constant
 h = 0.0001
 a = 2.0
