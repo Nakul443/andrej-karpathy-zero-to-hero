@@ -27,13 +27,13 @@ def draw_dot(root, format="svg", rankdir="LR"):
     nodes, edges = trace(root)
     for n in nodes:
         uid = str(id(n))
-        # format node label with optional variable name (label) and gradient (grad)
+        # format node label with optional variable name (label), data, and gradient (grad)
         label_parts = []
         if hasattr(n, "label") and n.label:
             label_parts.append(str(n.label))
         label_parts.append(f"data {n.data:.4f}")
-        if hasattr(n, "grad"):
-            label_parts.append(f"grad {n.grad:.4f}")
+        grad_val = getattr(n, "grad", 0.0)
+        label_parts.append(f"grad {grad_val:.4f}")
         dot.node(name=uid, label=f"{{ {' | '.join(label_parts)} }}", shape="record")
 
         if n._op:
