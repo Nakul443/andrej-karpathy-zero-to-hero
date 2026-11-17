@@ -47,3 +47,114 @@ draw_dot(o, format="svg", rankdir="LR").render(
 # and can be accessed after calling the backward() method on the output Value object.
 
 '''
+
+#---------------------------------------------------------------------------------------------------------------------------------#
+
+# implementation of back propagation in a simple neural network using the micrograd library
+
+'''
+# 1. first calculate do/do
+'''
+# base case: the gradient of the output with respect to itself is 1
+# do/do = 1.0
+o.grad = 1.0
+
+'''
+# 2. now we back propagate through the tanh
+
+Step 2: n (parent is o, via tanh)
+Local derivative: o = tanh(n), so do/dn = 1 - tanh(n)² = 1 - o²
+do/dn = do/do * do/dn
+      = 1.0 * (1 - 0.6044²)
+      = 1.0 * 0.6347
+      = 0.6347
+'''
+
+n.grad = o.grad * (1 - o.data**2)  # chain rule: (this is n.grad) do/dn = do/do * do/dn
+# n.grad = do/dn
+'''
+in your current code:
+    in your file, b = 6.7
+        - n = 0.7
+        - o = tanh(n)
+        - o = tanh(0.7) = 0.6043677771171635
+        so the local derivative of the tanh operation is: 1 - o**2 = 1 - 0.6043677771171635**2 = 0.635493
+        so the gradient of n is: n.grad = o.grad * (1 - o**2) = 1.0 * 0.635493 = 0.635493
+'''
+
+
+'''
+Step 3: x1w1x2w2 and b (parent is n, via +)
+
+n = x1w1x2w2 + b, so the local derivatives are dn/d(x1w1x2w2) = 1 and dn/db = 1.
+
+(this is x1w1x2w2.grad) do/d(x1w1x2w2) = do/dn * dn/d(x1w1x2w2) = 0.6347 * 1 = 0.6347
+do/db = do/dn * dn/db = 0.6347 * 1 = 0.6347
+
+x1w1x2w2.grad = 0.6347, b.grad = 0.6347
+'''
+
+# x1w1x2w2.grad = do/d(x1w1x2w2)
+x1w1x2w2.grad = n.grad * 1.0
+
+
+'''
+Step 4: x1w1 and x2w2 (parent is x1w1x2w2, via +)
+
+x1w1x2w2 = x1w1 + x2w2, so both local derivatives are 1.
+
+The complete chain from o back to x1w1 has four links:
+
+    do/d(x1w1) = do/dn * dn/d(x1w1x2w2) * d(x1w1x2w2)/d(x1w1)
+    but the first two links were already multiplied together in an earlier step:
+    do/d(x1w1x2w2) = do/dn * dn/d(x1w1x2w2)
+                = 0.6347 * 1
+                = 0.6347
+
+So do/d(x1w1x2w2) is do/dn * dn/d(x1w1x2w2), bundled into one number.
+
+
+When you write:
+    do/d(x1w1) = do/d(x1w1x2w2) * d(x1w1x2w2)/d(x1w1)
+and substitute that bundle in, you get the full chain:
+    do/d(x1w1) = [do/dn * dn/d(x1w1x2w2)] * d(x1w1x2w2)/d(x1w1)
+            = [do/d(x1w1x2w2)] * [d(x1w1x2w2)/d(x1w1)]
+            = [0.6347 * 1] * 1
+            = 0.6347
+
+# cuz of everything above, we get:
+(this is x1w1.grad) do/d(x1w1) = do/d(x1w1x2w2) * d(x1w1x2w2)/d(x1w1) = 0.6347 * 1 = 0.6347
+(this is x2w2.grad) do/d(x2w2) = do/d(x1w1x2w2) * d(x1w1x2w2)/d(x2w2) = 0.6347 * 1 = 0.6347
+
+x1w1.grad = 0.6347, x2w2.grad = 0.6347
+'''
+
+x1w1.grad = n.grad * 1.0 # x1w1.grad = do/d(x1w1)
+x2w2.grad = n.grad * 1.0 # x2w2.grad = do/d(x2w2)
+
+
+
+'''
+Step 5: x1 and w1 (parent is x1w1, via *)
+
+# do/d(x1w1) was calculated in the previous step
+x1w1 = x1 * w1,
+so local derivatives are: d(x1w1)/dx1 = w1 and d(x1w1)/dw1 = x1.
+
+do/dx1 = do/d(x1w1) * d(x1w1)/dx1 = 0.6347 * w1 = 0.6347 * (-3.0) = -1.9042
+do/dw1 = do/d(x1w1) * d(x1w1)/dw1 = 0.6347 * x1 = 0.6347 * (2.0)  =  1.2695
+'''
+x1.grad = w1.data * x1w1.grad
+w1.grad = x1.data * x1w1.grad
+
+'''
+Step 6: x2 and w2 (parent is x2w2, via *)
+
+# do/d(x2w2) was calculated in the previous step
+x2w2 = x2 * w2, so d(x2w2)/dx2 = w2 and d(x2w2)/dw2 = x2.
+do/dx2 = do/d(x2w2) * d(x2w2)/dx2 = 0.6347 * w2 = 0.6347 * 1.0 = 0.6347
+do/dw2 = do/d(x2w2) * d(x2w2)/dw2 = 0.6347 * x2 = 0.6347 * 0.0 = 0.0
+'''
+
+x2.grad = w2.data * x2w2.grad
+w2.grad = x2.data * x2w2.grad

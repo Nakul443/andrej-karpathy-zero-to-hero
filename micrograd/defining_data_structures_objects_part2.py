@@ -32,6 +32,7 @@ class Value:
     def __init__(self, data, _children=(), _op="", label=""):
         self.data = data
         self.grad = 0.0  # initially each node has 0 gradient
+        self._backward = lambda: None # a function which will do the entire math of the chain rule
         self._prev = set(
             _children
         )  # this is a set of the Value objects that were used to create this Value object
@@ -51,28 +52,53 @@ class Value:
 
     def __add__(self, other):
         # adding children to the _children set so that we can backpropagate through the computational graph later on
-        return Value(
+        out = Value(
             self.data + other.data,
             _children=(self, other),
             _op="+",
             label=f"{self.label}+{other.label}",
         )
+
+        def _backward():
+            self.grad += 1.0 * out.grad # d(output)/d(current node)
+            other.grad += 1.0 * out.grad
+            '''
+            Apply the chain rule:
+                do/d(other) = do/d(out) * d(out)/d(other)
+                            =  out.grad * 1.0
+                which is the line you asked about:
+                    other.grad = 1.0 * out.grad
+            '''
+
+        out._backward = _backward # storing the function inside the variable
+        return out
         # this return will cause __init__ to be called, which will create a new Value object with the data attribute set to the sum of the data attributes of self and other, and the _children attribute set to a tuple containing self and other, and the _op attribute set to '+'.
 
     def __mul__(self, other):
         # adding children to the _children set so that we can backpropagate through the computational graph later on
-        return Value(
+        out = Value(
             self.data * other.data,
             _children=(self, other),
             _op="*",
             label=f"{self.label}*{other.label}",
         )
 
+        def _backward():
+            self.grad += other.data * out.grad
+            other.grad += self.data * out.grad
+
+        out._backward = _backward
+        return out
+
     def tanh(self):
         # implementation of the tanh activation function: tanh(x) = (e^(2x) - 1) / (e^(2x) + 1)
         x = self.data
         t = (math.exp(2 * x) - 1) / (math.exp(2 * x) + 1)
         out = Value(t, _children=(self,), _op="tanh", label=f"tanh({self.label})")
+
+        def _backward():
+            self.grad = (1 - t**2) * out.grad
+        out._backward = _backward # we want to store the function
         return out
 
 
