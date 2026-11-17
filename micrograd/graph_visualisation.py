@@ -54,10 +54,10 @@ if __name__ == "__main__":
     from pathlib import Path
 
     curr_dir = Path(__file__).parent
-    source_file = curr_dir / "defining_data_structures(objects).py"
+    source_file = curr_dir / "defining_data_structures_objects_part2.py"
 
     spec = importlib.util.spec_from_file_location(
-        "defining_data_structures", source_file
+        "defining_data_structures_objects_part2", source_file
     )
     if spec is not None and spec.loader is not None:
         mod = importlib.util.module_from_spec(spec)
