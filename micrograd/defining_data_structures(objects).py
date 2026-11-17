@@ -20,16 +20,18 @@ every number must carry metadata along with its raw value
 '''
 
 
+# this class is a data structure that will hold the value of a number, its gradient, and the function that produced it
 class Value:
     # 1. we added the children parameter cuz we want to keep track of the Value objects that were used to create this Value object,
         # so that we can backpropagate through the computational graph later on.
 
     # 2. we added the op parameter cuz we want to keep track of the operation that was used to create this Value object,
         # so that we can backpropagate through the computational graph later on.
-    def __init__(self, data, _children=(), _op=''):
+    def __init__(self, data, _children=(), _op='', label=''):
         self.data = data
         self._prev = set(_children) # this is a set of the Value objects that were used to create this Value object
         self._op = _op # this is the operation that was used to create this Value object
+        self.label = label # this is a label for the Value object
 
     # If you omit __repr__,
     # Python falls back to its default representation showing only the class name and its memory address:
@@ -42,16 +44,22 @@ class Value:
 
     def __add__(self, other):
         # adding children to the _children set so that we can backpropagate through the computational graph later on
-        return Value(self.data + other.data, _children=(self, other), _op='+')
+        return Value(self.data + other.data, _children=(self, other), _op='+', label=f"{self.label}+{other.label}")
+        # this return will cause __init__ to be called, which will create a new Value object with the data attribute set to the sum of the data attributes of self and other, and the _children attribute set to a tuple containing self and other, and the _op attribute set to '+'.
 
     def __mul__(self, other):
         # adding children to the _children set so that we can backpropagate through the computational graph later on
-        return Value(self.data * other.data, _children=(self, other), _op='*')
+        return Value(self.data * other.data, _children=(self, other), _op='*', label=f"{self.label}*{other.label}")
 
-a = Value(2.0)
-b = Value(-3.0)
-c = Value(10.0)
-d = a*b + c
+a = Value(2.0, label='a')
+b = Value(-3.0, label='b')
+c = Value(10.0, label='c')
+e = a * b; e.label = 'e'
+d = e + c; d.label = 'd'
+f = Value(-2.0, label='f')
+L = d * f; L.label = 'L' # output of the graph
+
+
 # print(a+b) # this will raise an error because we haven't defined how to add two Value objects together yet
 # # internally python will call, a.__add__(b), which will return a new Value object with the data attribute set to the sum of the data attributes of a and b, which is -1.0
 

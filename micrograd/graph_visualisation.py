@@ -62,22 +62,9 @@ if __name__ == "__main__":
     if spec is not None and spec.loader is not None:
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
-        Value = mod.Value
-
-        # Example expression matching Karpathy's micrograd walkthrough
-        a = Value(2.0)
-        a.label = "a"
-        b = Value(-3.0)
-        b.label = "b"
-        c = Value(10.0)
-        c.label = "c"
-        e = a * b
-        e.label = "e"
-        d = e + c
-        d.label = "d"
 
         # Render to SVG
         output_path = curr_dir / "computational_graph"
-        dot = draw_dot(d)
+        dot = draw_dot(mod.L)
         dot.render(str(output_path), format="svg", cleanup=True)
         print(f"Graph generated at: {output_path}.svg")
