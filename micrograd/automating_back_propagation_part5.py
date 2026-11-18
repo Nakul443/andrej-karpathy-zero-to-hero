@@ -26,3 +26,7 @@ x2w2._backward()
 
 # 4. Render the graph with the computed gradients
 draw_dot(o, format="svg", rankdir="LR").render("graph", view=True)
+
+
+
+# https://youtu.be/VMj-3S1tku0?list=PLAqhIrjkxbuWI23v9cThsA9GvCAUhRvKZ&t=4703
