@@ -9,24 +9,28 @@ w2 = Value(1.0, label="w2")
 b = Value(6.8813735870195432, label="b")
 
 # 2. Forward pass
-x1w1 = x1 * w1; x1w1.label = "x1*w1"
-x2w2 = x2 * w2; x2w2.label = "x2*w2"
-x1w1x2w2 = x1w1 + x2w2; x1w1x2w2.label = "x1*w1 + x2*w2"
-n = x1w1x2w2 + b; n.label = "n"
-o = n.tanh(); o.label = "o"
+x1w1 = x1 * w1
+x1w1.label = "x1*w1"
+x2w2 = x2 * w2
+x2w2.label = "x2*w2"
+x1w1x2w2 = x1w1 + x2w2
+x1w1x2w2.label = "x1*w1 + x2*w2"
+n = x1w1x2w2 + b
+n.label = "n"
 
-# 3. Backward pass (manual chaining)
-o.grad = 1.0
-o._backward()
-n._backward()
-b._backward()        # does nothing (lambda: None)
-x1w1x2w2._backward()
-x1w1._backward()
-x2w2._backward()
+# Breaking down tanh:
+# tanh(n) = (e^(2n) - 1) / (e^(2n) + 1)
+# Note: parentheses around (e + 1) are required so division happens across the whole denominator
+e = (2 * n).exp()
+e.label = "e"
+o = (e - 1) / (e + 1)
+o.label = "o"
+
+# 3. Automated Backward pass (topological sort is encapsulated inside Value.backward())
+o.backward()
 
 # 4. Render the graph with the computed gradients
 draw_dot(o, format="svg", rankdir="LR").render("graph", view=True)
-
 
 
 # https://youtu.be/VMj-3S1tku0?list=PLAqhIrjkxbuWI23v9cThsA9GvCAUhRvKZ&t=4703
