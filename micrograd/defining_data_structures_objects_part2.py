@@ -190,10 +190,10 @@ L.label = "L"  # output of the graph
 # print((a*b)+c)
 # # internally python will call, (a.__mul__(b)).__add__(c)
 
-print(
-    d._prev
-)  # this will print the set of Value objects that were used to create d, which is {a, b, c}
-print(d._op)  # this will print the operation that was used to create d, which is +
+# print(
+#     d._prev
+# )  # this will print the set of Value objects that were used to create d, which is {a, b, c}
+# print(d._op)  # this will print the operation that was used to create d, which is +
 """
 d  (+)
 ├── temp (*)      <- d._prev contains this
