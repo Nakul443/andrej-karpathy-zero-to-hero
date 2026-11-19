@@ -54,6 +54,8 @@ class Value:
     # __rmul__ makes 2 * a work by flipping it to a * 2, since Python can’t multiply an int by a Value on its own.
     def __rmul__(self, other):
         return self * other
+    
+    
 
     # power function
     def __pow__(self, other):
