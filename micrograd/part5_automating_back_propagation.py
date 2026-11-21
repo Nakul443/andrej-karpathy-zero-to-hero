@@ -1,5 +1,6 @@
-from micrograd.part2_defining_data_structures_objects import Value
 from graph_visualisation import draw_dot
+
+from micrograd.part2_defining_data_structures_objects import Value
 
 # 1. Inputs and weights
 x1 = Value(2.0, label="x1")
