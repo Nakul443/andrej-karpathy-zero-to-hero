@@ -1170,3 +1170,470 @@ Backward pass:
 3. each operation calculates its local derivative
 4. each operation sends `localDerivative * incomingGradient` to its parents
 5. every input and weight receives its final gradient
+
+## 19. More operations were added to `Value`
+
+The `Value` class was made more useful so it could build more kinds of graphs.
+
+### Power
+
+```python
+def __pow__(self, other):
+```
+
+This supports expressions like:
+
+```python
+x ** 2
+```
+
+The code only allows powers with a number:
+
+```python
+assert isinstance(other, (int, float))
+```
+
+The derivative of `x^a` is:
+
+```text
+a * x^(a-1)
+```
+
+For example, the derivative of `x^2` is `2x`.
+
+The backward function is:
+
+```python
+self.grad += other * (self.data ** (other - 1)) * out.grad
+```
+
+This combines the local derivative with the gradient coming from the output.
+
+### Negative, subtraction, and division
+
+These operations reuse the operations that already exist:
+
+```python
+def __neg__(self):
+    return self * -1
+
+def __sub__(self, other):
+    return self + (-other)
+
+def __truediv__(self, other):
+    return self * other**-1
+```
+
+This means:
+
+- `-x` means `x * -1`
+- `x - y` means `x + (-y)`
+- `x / y` means `x * (y ** -1)`
+
+So division and subtraction do not need separate backward formulas.
+
+### Reverse multiplication and addition
+
+Python may call:
+
+```python
+def __rmul__(self, other):
+    return self * other
+```
+
+This allows:
+
+```python
+2 * n
+```
+
+when `2` is on the left and `n` is a `Value`.
+
+`__radd__` supports addition in the reverse direction:
+
+```python
+def __radd__(self, other):
+    return self + other
+```
+
+This is useful for sums that start with `0`.
+
+### Exp
+
+The `exp()` method creates:
+
+```python
+out = Value(math.exp(x), (self,), "exp")
+```
+
+The derivative of `e^x` is `e^x`:
+
+```python
+self.grad += out.data * out.grad
+```
+
+`out.data` is used because it already equals `e^x`.
+
+---
+
+## 20. Automatic backward pass
+
+The `Value.backward()` method now removes the need to call each `_backward()` method by hand.
+
+It uses topological sorting.
+
+### Topological order
+
+The code starts with:
+
+```python
+topo = []
+visited = set()
+```
+
+It recursively visits every parent node:
+
+```python
+def build_topo(v):
+    if v not in visited:
+        visited.add(v)
+        for child in v._prev:
+            build_topo(child)
+        topo.append(v)
+```
+
+The result is a list where parent nodes come before child nodes.
+
+For example:
+
+```text
+a
+b
+e = a*b
+c
+d = e+c
+f
+L = d*f
+```
+
+The important rule is:
+
+> a node must come after every node that created it
+
+### Reversed order
+
+The code sets the final output gradient to 1:
+
+```python
+self.grad = 1.0
+```
+
+Then it reverses the topological list:
+
+```python
+for node in reversed(topo):
+    node._backward()
+```
+
+Now backward pass starts at the output and moves toward the inputs.
+
+This also ensures a node sends its gradient only after it has received the full gradient.
+
+---
+
+## 21. tanh was built from basic operations
+
+Later code builds tanh with simple operations instead of one special tanh function:
+
+```text
+tanh(n) = (e^(2n) - 1) / (e^(2n) + 1)
+```
+
+The code is:
+
+```python
+e = (2 * n).exp()
+o = (e - 1) / (e + 1)
+```
+
+The graph now has these steps:
+
+```text
+n -> 2*n -> exp -> e -> e-1 -> divide -> o
+```
+
+It also needs `(e + 1)`.
+
+The extra parentheses make the whole value the denominator.
+
+This works because:
+
+- multiplication knows its backward rule
+- subtraction uses addition and negation
+- exp knows its backward rule
+- division uses multiplication and power
+
+No separate tanh backward rule is needed.
+
+---
+
+## 22. Same result with PyTorch
+
+The PyTorch file checks the same neuron.
+
+It creates tensors with:
+
+```python
+requires_grad=True
+```
+
+This tells PyTorch to track the operations and keep gradients.
+
+The forward pass is:
+
+```python
+n = x1*w1 + x2*w2 + b
+o = torch.tanh(n)
+```
+
+Calling:
+
+```python
+o.backward()
+```
+
+sets the output gradient and calculates gradients for every tensor that needs one.
+
+The code prints gradients such as:
+
+```python
+x1.grad
+w1.grad
+x2.grad
+w2.grad
+```
+
+The result should match the Micrograd version.
+
+`.item()` turns a one-value tensor into a normal Python number.
+
+PyTorch is faster and supports more operations, tensors, and GPUs.
+
+Micrograd shows the small version of the same idea.
+
+---
+
+## 23. Building larger networks
+
+The next code builds classes for:
+
+- neuron
+- layer
+- multi-layer perceptron
+
+### Neuron
+
+A neuron gets the number of inputs:
+
+```python
+Neuron(nin)
+```
+
+It creates:
+
+- one random weight for every input
+- one random bias
+
+Weights and bias are `Value` objects.
+
+The neuron calculates:
+
+```python
+act = sum(wi * xi for wi, xi in zip(self.w, x)) + self.b
+out = act.tanh()
+```
+
+This is:
+
+```text
+weighted sum + bias -> tanh
+```
+
+### Layer
+
+A layer contains many neurons.
+
+For example:
+
+```python
+Layer(3, 4)
+```
+
+means:
+
+- 3 inputs
+- 4 neurons
+- every neuron takes 3 inputs
+
+The layer sends the same input to every neuron.
+
+If it has 1 neuron, it returns one `Value`.
+
+If it has many neurons, it returns a list.
+
+### MLP
+
+MLP means multi-layer perceptron.
+
+Example:
+
+```python
+MLP(3, [4, 4, 1])
+```
+
+means:
+
+```text
+3 inputs
+4 neurons
+4 neurons
+1 output
+```
+
+The MLP sends the output of one layer into the next layer.
+
+### parameters()
+
+Every class has a `parameters()` method:
+
+- `Neuron`: returns its weights and bias
+- `Layer`: joins the parameters of all its neurons
+- `MLP`: joins the parameters of all its layers
+
+For `MLP(3, [4, 4, 1])`, the network has 41 learnable values.
+
+---
+
+## 24. Loss
+
+The example data has inputs `xs` and wanted outputs `ys`.
+
+The network makes a prediction for each input:
+
+```python
+ypred = [n(x) for x in xs]
+```
+
+The code compares every prediction with its wanted result:
+
+```text
+error = prediction - target
+squared error = error ** 2
+```
+
+The squared error is never negative.
+
+Larger mistakes are counted more heavily.
+
+The total loss adds all squared errors:
+
+```python
+loss = Value(0.0)
+for ygt, yout in zip(ys, ypred):
+    prediction = yout[0] if isinstance(yout, list) else yout
+    loss = loss + (prediction - ygt) ** 2
+```
+
+The goal is to make this loss as small as possible.
+
+---
+
+## 25. Backward pass and gradient descent
+
+Calling:
+
+```python
+loss.backward()
+```
+
+calculates how the loss changes with every weight and bias.
+
+It fills each parameter's `.grad`.
+
+It does not change the parameter values.
+
+The update rule is:
+
+```python
+p.data += -learning_rate * p.grad
+```
+
+The negative sign moves opposite to the gradient.
+
+If the gradient is positive:
+
+- increasing the weight increases loss
+- decrease the weight
+
+If the gradient is negative:
+
+- increasing the weight decreases loss
+- increase the weight
+
+The learning rate controls the step size.
+
+The code uses `0.05`.
+
+---
+
+## 26. Training loop
+
+The training loop repeats these steps:
+
+### 1. Forward pass
+
+Make predictions for all input values.
+
+### 2. Calculate loss
+
+Compare predictions with wanted outputs.
+
+### 3. Clear old gradients
+
+Before backward pass:
+
+```python
+for p in n.parameters():
+    p.grad = 0.0
+```
+
+This is required because backward pass uses `+=`.
+
+Without clearing, old gradients would be added to new gradients.
+
+### 4. Backward pass
+
+```python
+loss.backward()
+```
+
+This finds the gradient of loss for every parameter.
+
+### 5. Update parameters
+
+```python
+for p in n.parameters():
+    p.data += -0.05 * p.grad
+```
+
+This moves every weight and bias a small step downhill.
+
+### 6. Print loss
+
+```python
+print(k, loss.data)
+```
+
+Running the loop should usually reduce the loss.
+
+The exact loss can differ because random weights start at different values.
