@@ -1,6 +1,6 @@
 # implementing an example of back propagation in a simple neural network using the micrograd library
 
-from defining_data_structures_objects_part2 import Value
+from micrograd.part2_defining_data_structures_objects import Value
 from graph_visualisation import draw_dot
 
 # input x1,x2

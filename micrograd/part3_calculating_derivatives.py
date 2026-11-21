@@ -10,7 +10,7 @@ to understand how the computational graph is built and how the gradients are cal
 
 # manual code to try and visualize the computational graph of a Value object
 # how back propagation works, and how the gradients are calculated and propagated through the graph
-from defining_data_structures_objects_part2 import Value
+from micrograd.part2_defining_data_structures_objects import Value
 
 
 # dummy function

@@ -22,7 +22,7 @@ If you later add a new kind of layer, you only write its `parameters()`, and `ML
 
 import random
 
-from defining_data_structures_objects_part2 import Value
+from micrograd.part2_defining_data_structures_objects import Value
 
 
 class Neuron:
@@ -243,7 +243,6 @@ print(n.layers[0].neurons[0].w[0].grad)
 implementing gradient descent:
 
 Think of the loss as a hill, and you want to walk down to the bottom (lowest loss).
-
 `p.grad` tells you which way is **uphill** for that weight. So you step the **opposite way**, which is downhill.
 
 **Tiny example with one weight:**

@@ -1,4 +1,4 @@
-from defining_data_structures_objects_part2 import Value
+from micrograd.part2_defining_data_structures_objects import Value
 from graph_visualisation import draw_dot
 
 # 1. Inputs and weights
